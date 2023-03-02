@@ -6,7 +6,6 @@ from email.utils import formatdate
 from playwright.sync_api import sync_playwright
 import os
 from datetime import datetime as dt
-from zoneinfo import ZoneInfo
 import json
 
 RAKUTEN_SEC_URL = "https://www.rakuten-sec.co.jp/ITS/V_ACT_Login.html"
@@ -21,9 +20,10 @@ with open('.env.json', 'r') as f:
     TO_ADDRESS = envs["to_address"]
 
 with sync_playwright() as pw:
-    browser = pw.chromium.launch(
-        channel="chrome",
-        headless=False,
+    browser = pw.firefox.launch(
+    # browser = pw.chromium.launch(
+        # channel="chrome",
+        # headless=False,
     )
     context = browser.new_context(viewport={"width": 1920, "height": 1080})
 
@@ -37,7 +37,7 @@ with sync_playwright() as pw:
     page.locator('a[data-ratid="mem_pc_top_purpose_all-possess-lst"]').click()
     page.wait_for_selector("#str-main-inner")
 
-    now = dt.now(ZoneInfo("Asia/Tokyo"))
+    now = dt.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
     FILENAME = os.path.join("results", f"保有資産_{now.year}年{now.month}月{now.day}日.png")
 
     # page.screenshot(path=FILENAME, full_page=True)

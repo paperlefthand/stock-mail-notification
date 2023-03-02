@@ -10,13 +10,14 @@
 - あらかじめ2段階認証を有効化してアプリパスワードを発行する
 - `.env.json`を作成し各種設定値を記載する
 - poetryの初期設定
+
   ```bash
   poetry install
-  poetry run playwright install firefox
+  poetry run playwright install chromium
   ```
 
-
 ## 実行
+
 ```bash
 poetry run python main.py
 ```

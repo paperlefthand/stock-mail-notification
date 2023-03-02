@@ -1,3 +1,4 @@
-.env
-chromedriver*.exe
-result.png
+.venv
+.env.json
+/results/*
+!/results/.gitkeep

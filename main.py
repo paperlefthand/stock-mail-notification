@@ -3,79 +3,72 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.application import MIMEApplication
 from email.utils import formatdate
-from selenium import webdriver
-from selenium.webdriver.chrome import service as fs
-from selenium.webdriver.common.by import By
-# from bs4 import BeautifulSoup
-import os, sys
-from dotenv import load_dotenv
-load_dotenv()
+from playwright.sync_api import sync_playwright
+import os
+from datetime import datetime as dt
+from zoneinfo import ZoneInfo
+import json
 
-CHROMEDRIVER_PATH = ".\chromedriver_v103.exe"
+RAKUTEN_SEC_URL = "https://www.rakuten-sec.co.jp/ITS/V_ACT_Login.html"
 
-chrome_service = fs.Service(executable_path=CHROMEDRIVER_PATH)
-chrome_options = webdriver.ChromeOptions()
-chrome_options.add_argument('--no-sandbox')
-chrome_options.add_argument('--headless')
-driver = webdriver.Chrome(service=chrome_service, options=chrome_options)
-driver.implicitly_wait(60)
+with open('.env.json', 'r') as f:
+    envs = json.load(f)
+    GMAIL_ADDRESS = envs["gmail_address"]
+    GMAIL_PASSWORD = envs["gmail_password"]
+    RAKUTEN_SEC_ID = envs["rakuten_sec_id"]
+    RAKUTEN_SEC_PASSWORD = envs["rakuten_sec_password"]
+    FROM_ADDRESS = envs["from_address"]
+    TO_ADDRESS = envs["to_address"]
 
-driver.get('https://www.rakuten-sec.co.jp/ITS/V_ACT_Login.html')
+with sync_playwright() as pw:
+    browser = pw.chromium.launch(
+        channel="chrome",
+        headless=False,
+    )
+    context = browser.new_context(viewport={"width": 1920, "height": 1080})
 
-# login
-try:
-    driver.find_element(By.ID, "form-login-id").send_keys(os.getenv('RAKUTEN_SEC_ID'))
-    driver.find_element(By.ID, "form-login-pass").send_keys(os.getenv('RAKUTEN_SEC_PASSWORD'))
-    driver.find_element(By.ID, "login-btn").click()
-except:
-    pass
+    page = context.new_page()
+    page.goto(RAKUTEN_SEC_URL)
 
-try:
-    element = driver.find_element(By.LINK_TEXT, "保有資産を確認する")
-    element.click()
-except:
-    pass
+    page.locator("#form-login-id").type(RAKUTEN_SEC_ID, delay=100)
+    page.locator("#form-login-pass").type(RAKUTEN_SEC_PASSWORD, delay=100)
+    page.locator("#login-btn").click()
 
-bodyText = ""
-rows = driver.find_elements(By.CSS_SELECTOR, '#table_possess_data > span > table > tbody > tr')
-for row in rows[1:]:
-    tds = row.find_elements(By.TAG_NAME, 'td')
-    text = f"{tds[0].text},{tds[1].text},{tds[2].text},{tds[3].text},{tds[4].text},{tds[5].text},{tds[6].text}\n"
-    bodyText += text
+    page.locator('a[data-ratid="mem_pc_top_purpose_all-possess-lst"]').click()
+    page.wait_for_selector("#str-main-inner")
 
-filename = "result.png"
+    now = dt.now(ZoneInfo("Asia/Tokyo"))
+    FILENAME = os.path.join("results", f"保有資産_{now.year}年{now.month}月{now.day}日.png")
 
-png = driver.find_element(By.ID, 'str-main-inner').screenshot_as_png
-with open(filename, 'wb') as f:
-    f.write(png)
+    # page.screenshot(path=FILENAME, full_page=True)
+    page.locator("#str-main-inner").screenshot(path=FILENAME)
 
-driver.close()
-
+# メール本文作成
 body = f"""
 <html>
     <body>
-        <h1>保有銘柄一覧</h1>
-        <p>{bodyText}</p>
+        {now.hour}時{now.minute}分時点の情報です
     </body>
 </html>"""
 
-# メール作成
+# メールヘッダ作成
 msg = MIMEMultipart()
-msg['Subject'] = '保有商品'
-msg['From'] = os.getenv('FROM_ADDRESS')
-msg['To'] = os.getenv('TO_ADDRESS')
-msg['Date'] = formatdate()
+msg["Subject"] = f"{now.month}月{now.day}日 楽天証券 保有商品"
+msg["From"] = FROM_ADDRESS
+msg["To"] = TO_ADDRESS
+msg["Date"] = formatdate()
 msg.attach(MIMEText(body, "html"))
 
-with open(filename, "rb") as f:
+# ファイルの添付
+with open(FILENAME, "rb") as f:
     mb = MIMEApplication(f.read())
 
-mb.add_header("Content-Disposition", "attachment", filename=filename)
+mb.add_header("Content-Disposition", "attachment", filename=FILENAME)
 msg.attach(mb)
 
 # SMTPサーバに接続
-smtpobj = smtplib.SMTP('smtp.gmail.com', 587)
+smtpobj = smtplib.SMTP("smtp.gmail.com", 587)
 smtpobj.starttls()
-smtpobj.login(os.getenv('GMAIL_ADDRESS'), os.getenv('GMAIL_PASSWORD'))
+smtpobj.login(GMAIL_ADDRESS, GMAIL_PASSWORD)
 smtpobj.send_message(msg)
 smtpobj.close()

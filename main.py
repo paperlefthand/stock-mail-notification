@@ -13,7 +13,7 @@ RAKUTEN_SEC_URL = "https://www.rakuten-sec.co.jp/ITS/V_ACT_Login.html"
 with open(".env.json", "r") as f:
     envs = json.load(f)
     GMAIL_ADDRESS = envs["gmail_address"]
-    GMAIL_PASSWORD = envs["gmail_password"]
+    GMAIL_APP_PASSWORD = envs["gmail_app_password"]
     RAKUTEN_SEC_ID = envs["rakuten_sec_id"]
     RAKUTEN_SEC_PASSWORD = envs["rakuten_sec_password"]
     FROM_ADDRESS = envs["from_address"]
@@ -72,6 +72,6 @@ msg.attach(mb)
 # SMTPサーバに接続
 smtpobj = smtplib.SMTP("smtp.gmail.com", 587)
 smtpobj.starttls()
-smtpobj.login(GMAIL_ADDRESS, GMAIL_PASSWORD)
+smtpobj.login(GMAIL_ADDRESS, GMAIL_APP_PASSWORD)
 smtpobj.send_message(msg)
 smtpobj.close()

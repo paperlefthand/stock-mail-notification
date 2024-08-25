@@ -1,20 +1,16 @@
 [tool.poetry]
 name = "stock-mail-notification"
-version = "0.1.0"
+version = "0.0.2"
 description = "楽天証券の保有銘柄をメールで通知"
 authors = ["Miura Kosuke <being.paperlefthand@gmail.com>"]
 license = "MIT"
 readme = "README.md"
-packages = [{include = "stock_mail_notification"}]
+package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.7"
-playwright = "^1.31.1"
-tzdata = "^2022.7"
-
-[tool.poetry.group.dev.dependencies]
-black = "^23.1.0"
-flake8 = "^5.0.4"
+python = "^3.11"
+playwright = "^1.46.0"
+tzdata = "^2024.1"
 
 [build-system]
 requires = ["poetry-core"]
